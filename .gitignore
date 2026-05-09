@@ -1,0 +1,17 @@
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+.DS_Store
+*.log
+.env
+docker-compose.override.yml
+grafana/data/
+prometheus/data/
+
+# Dashboard
+event-dashboard/node_modules/
+event-dashboard/dist/
+event-dashboard/.env.local

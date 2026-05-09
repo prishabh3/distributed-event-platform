@@ -1,0 +1,128 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: default-email
+    receivers:
+      - uid: default-receiver
+        type: email
+        settings:
+          addresses: admin@example.com
+          subject: "[ALERT] {{ .GroupLabels.alertname }} — Event Platform"
+
+policies:
+  - orgId: 1
+    receiver: default-email
+    group_by: [alertname]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 1h
+
+groups:
+  - orgId: 1
+    name: event-platform-alerts
+    folder: Event Platform
+    interval: 1m
+    rules:
+
+      - uid: dlq-events-spike
+        title: DLQ Events Detected
+        condition: B
+        for: 0s
+        annotations:
+          summary: "Events are being permanently failed to the DLQ"
+          description: "{{ $values.B.Value }} DLQ events in the last 5 minutes. Check consumer-worker logs for the failure reason."
+        labels:
+          severity: critical
+          team: platform
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: increase(dlq_events_total[5m])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+
+      - uid: high-retry-rate
+        title: High Retry Rate
+        condition: B
+        for: 2m
+        annotations:
+          summary: "Elevated retry rate on event delivery"
+          description: "{{ $values.B.Value }} retry attempts in the last 5 minutes — webhook endpoints may be degraded."
+        labels:
+          severity: warning
+          team: platform
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: increase(retry_attempts_total[5m])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [10]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+
+      - uid: circuit-breaker-open
+        title: Circuit Breaker Open
+        condition: B
+        for: 0s
+        annotations:
+          summary: "A circuit breaker has opened"
+          description: "Circuit breaker state is not CLOSED — Redis or webhook endpoints may be unhealthy."
+        labels:
+          severity: warning
+          team: platform
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: resilience4j_circuitbreaker_state{state!="closed"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last

@@ -1,0 +1,29 @@
+# Overrides applied during Testcontainers integration tests.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+
+management:
+  tracing:
+    sampling:
+      probability: 0.0
+  otlp:
+    tracing:
+      endpoint: "http://localhost:4318/v1/traces"
+
+app:
+  webhook:
+    connect-timeout-ms: 3000
+    response-timeout-ms: 5000
+  deduplication:
+    ttl-hours: 1
+
+logging:
+  level:
+    com.porter.platform: DEBUG
+    org.springframework.kafka: INFO
+    org.flywaydb: INFO

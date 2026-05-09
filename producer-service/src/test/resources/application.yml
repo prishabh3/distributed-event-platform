@@ -1,0 +1,35 @@
+# Overrides applied during Testcontainers integration tests.
+# Spring Boot merges this with src/main/resources/application.yml.
+# DynamicPropertySource in each test class supplies the actual container URLs.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+
+management:
+  tracing:
+    sampling:
+      probability: 0.0    # disable distributed tracing — no Jaeger in test environment
+  otlp:
+    tracing:
+      endpoint: "http://localhost:4318/v1/traces"   # unreachable but prevents startup NPE
+
+app:
+  security:
+    api-keys: prod-key-alpha-001,prod-key-beta-002,test-key-gamma-003
+  rate-limit:
+    requests-per-second: 10000   # effectively unlimited in tests
+  idempotency:
+    ttl-seconds: 300
+  outbox:
+    poll-interval-ms: 200
+    batch-size: 10
+
+logging:
+  level:
+    com.porter.platform: DEBUG
+    org.springframework.kafka: INFO
+    org.flywaydb: INFO
